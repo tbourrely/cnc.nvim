@@ -1,10 +1,8 @@
 rockspec_format = '3.0'
--- TODO: Rename this file and set the package
-package = "nvim-lua-plugin"
-version = "scm-1"
+package = "cnc-nvim"
+version = "0.0.0"
 source = {
-  -- TODO: Update this URL
-  url = "git+https://github.com/nvim-lua/nvim-lua-plugin-template"
+  url = "git+https://github.com/tbourrely/cnc.nvim.git"
 }
 dependencies = {
   -- Add runtime dependencies here
