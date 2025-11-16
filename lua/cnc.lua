@@ -56,21 +56,13 @@ function M.clear()
   end)
 end
 
-local buffer_to_string = function()
-  -- TODO: add cursor position marker
-  local content = vim.api.nvim_buf_get_lines(0, 0, vim.api.nvim_buf_line_count(0), false)
-  return table.concat(content, "\n")
-end
-
 function M.draw()
   local api = vim.api
   local bnr = vim.fn.bufnr('%')
-  local r, c = unpack(api.nvim_win_get_cursor(0))
+  local line_num, col_num = unpack(api.nvim_win_get_cursor(0))
   local ns_id = api.nvim_create_namespace(marks_ns)
-  local line_num = r
-  local col_num = c
   local client = require('client')
-  local content = client.get(buffer_to_string())
+  local content = client.get(require('buffer').to_string(line_num, col_num))
   local opts = {
     id = 1,
     virt_text = { { content } },
