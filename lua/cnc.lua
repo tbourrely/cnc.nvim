@@ -56,21 +56,52 @@ function M.clear()
   end)
 end
 
-function M.draw()
+local function get_cursor_position()
+  local api = vim.api
+  local line_num, col_num = unpack(api.nvim_win_get_cursor(0))
+  return line_num, col_num
+end
+
+local function draw_suggestion(suggestion, line_num, col_num)
   local api = vim.api
   local bnr = vim.fn.bufnr('%')
-  local line_num, col_num = unpack(api.nvim_win_get_cursor(0))
   local ns_id = api.nvim_create_namespace(marks_ns)
-  local client = require('client')
-  local content = client.get(require('buffer').to_string(line_num, col_num))
   local opts = {
     id = 1,
-    virt_text = { { content } },
+    virt_text = { { suggestion } },
     virt_text_pos = 'overlay',
   }
-  vim.print(line_num, col_num)
   local mark_id = api.nvim_buf_set_extmark(bnr, ns_id, line_num - 1, col_num, opts)
   table.insert(mark_ids, mark_id)
+end
+
+--- Draw code completion suggestion at the current cursor position
+--- @return nil
+---
+--- TODO:
+--- * improve cursor position handling
+function M.draw()
+  local uv = vim.uv
+
+  local line_num, col_num = get_cursor_position()
+  local buffer_content = require('buffer').to_string(line_num, col_num)
+
+  local function work_callback(content)
+    return require('client').get(content)
+  end
+  local function after_work_callback(c)
+    if not c or c == '' then
+      return
+    end
+
+    vim.schedule(function()
+      draw_suggestion(c, line_num, col_num)
+    end)
+  end
+
+  -- TODO: handle multiple requests properly (cancellation, queueing, etc.)
+  local work = uv.new_work(work_callback, after_work_callback)
+  work:queue(buffer_content)
 end
 
 return M
