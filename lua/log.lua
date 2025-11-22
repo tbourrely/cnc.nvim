@@ -11,7 +11,7 @@ M.write = function(msg)
 end
 
 function M.debug(msg)
-  M.write("[cnc.nvim] - [debug] - " .. os.date("%X") .. " - " .. msg)
+  M.write("[cnc.nvim] - [debug] - " .. os.date("%c") .. " - " .. msg)
 end
 
 return M
