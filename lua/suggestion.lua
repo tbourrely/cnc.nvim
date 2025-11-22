@@ -4,16 +4,6 @@ local log = require('log')
 local marks_ns = 'cnc.nvim'
 local ns_id = vim.api.nvim_create_namespace(marks_ns)
 
---- Clear all suggestions from the current buffer
---- @return nil
-function M.clear()
-  log.debug("Schedule clearing suggestions")
-  vim.schedule(function()
-    log.debug("Clearing suggestions")
-    vim.api.nvim_buf_del_extmark(0, ns_id, 1)
-  end)
-end
-
 --- Draw a suggestion at the given line and column number
 --- @param suggestion string The suggestion text to draw
 --- @param line_num number The line number (1-based)
@@ -52,7 +42,10 @@ end
 --- @return nil
 function M.reject_suggestion()
   log.debug("Rejecting suggestion")
-  M.clear()
+  vim.schedule(function()
+    log.debug("Clearing suggestion")
+    vim.api.nvim_buf_del_extmark(0, ns_id, 1)
+  end)
 end
 
 return M
