@@ -2,7 +2,7 @@ local M = {}
 
 local autocmd = vim.api.nvim_create_autocmd
 local delcmd = vim.api.nvim_del_autocmd
-local drawer = require('draw')
+local suggestion = require('suggestion')
 local log = require('log')
 local uuid = require('uuid')
 
@@ -17,6 +17,13 @@ function M.setup()
     pattern = '*',
     callback = function()
       M.draw()
+    end,
+  }))
+
+  table.insert(commands, autocmd('CursorMovedI', {
+    pattern = '*',
+    callback = function()
+      M.clear()
     end,
   }))
 
@@ -37,6 +44,15 @@ function M.setup()
   vim.api.nvim_create_user_command('CncDisable', function()
     M.teardown()
   end, {})
+
+  -- TODO: make this configurable
+  vim.keymap.set('i', '<C-a>', function()
+    M.accept_suggestion()
+  end, { noremap = true, silent = true })
+
+  vim.keymap.set('i', '<C-e>', function()
+    M.reject_suggestion()
+  end, { noremap = true, silent = true })
 end
 
 function M.teardown()
@@ -48,7 +64,8 @@ function M.teardown()
 end
 
 function M.clear()
-  drawer.clear()
+  log.debug("Clearing suggestions")
+  suggestion.clear()
 end
 
 local function get_cursor_position()
@@ -84,7 +101,7 @@ function M.draw()
 
     vim.schedule(function()
       log.debug('Drawing suggestion at line ' .. line_num .. ', column ' .. col_num .. ' for request id ' .. id)
-      drawer.draw_suggestion(c, line_num, col_num)
+      suggestion.draw_suggestion(c, line_num, col_num)
     end)
   end
 
@@ -96,6 +113,14 @@ function M.draw()
   local work = uv.new_work(work_callback, after_work_callback)
   work:queue(buffer_content, id)
   last_request_id = id
+end
+
+function M.accept_suggestion()
+  suggestion.accept_suggestion()
+end
+
+function M.reject_suggestion()
+  suggestion.reject_suggestion()
 end
 
 return M
