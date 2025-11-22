@@ -82,6 +82,10 @@ function M.draw()
     return require('openai').get(content), id
   end
   local function after_work_callback(c, id)
+    if id == nil then
+      log.debug('No request id received in after_work_callback')
+      return
+    end
     log.debug('Received response from LLM for id ' .. id)
 
     if not c or c == '' then

@@ -6,8 +6,8 @@ local ns_id = vim.api.nvim_create_namespace(marks_ns)
 
 --- Draw a suggestion at the given line and column number
 --- @param suggestion string The suggestion text to draw
---- @param line_num number The line number (1-based)
---- @param col_num number The column number (0-based)
+--- @param line_num number The line number (0-based, inclusive)
+--- @param col_num number The column number (0-based, exclusive)
 --- @return nil
 function M.draw_suggestion(suggestion, line_num, col_num)
   local api = vim.api
@@ -16,7 +16,12 @@ function M.draw_suggestion(suggestion, line_num, col_num)
     virt_text = { { suggestion } },
     virt_text_pos = 'overlay',
   }
-  api.nvim_buf_set_extmark(0, ns_id, line_num - 1, col_num, opts)
+  local status, err = pcall(function()
+    api.nvim_buf_set_extmark(0, ns_id, line_num - 1, col_num, opts)
+  end)
+  if not status then
+    log.error("Failed to set extmark: " .. err)
+  end
 end
 
 --- Accept the current suggestion and insert it into the buffer
@@ -25,17 +30,26 @@ function M.accept_suggestion()
   local mark = vim.api.nvim_buf_get_extmark_by_id(0, ns_id, 1, { details = true })
   log.debug(vim.inspect(mark))
   if #mark == 0 then
-    log.debug("No extmark found")
+    log.debug("No suggestion found")
     return
   end
   local row, col, content = unpack(mark)
   if not content or not content.virt_text or #content.virt_text == 0 then
-    log.debug("No virt_text found in extmark")
+    log.debug("No suggestion content found")
     return
   end
   local virt_text = content.virt_text[1][1]
   log.debug("Inserting suggestion at row " .. row .. ", col " .. col .. ": " .. virt_text)
-  vim.api.nvim_buf_set_text(0, row, col, row, col, { virt_text })
+
+  local existing = vim.api.nvim_buf_get_lines(0, row, row + 1, false)
+  local end_col = col
+  if #existing ~= 0 then
+    end_col = #existing[1]
+  end
+  vim.api.nvim_buf_set_text(0, row, col, row, end_col, { virt_text }) -- replace from cursor to end of line
+  -- suggestion mark will be cleared by neovim autocmd on text change
+
+  vim.api.nvim_win_set_cursor(0, { row + 1, col + #virt_text }) -- move cursor to end of inserted text
 end
 
 --- Reject the current suggestion and clear it from the buffer
