@@ -11,7 +11,6 @@ local commands = {}
 -- Store the last request id to handle outdated responses
 local last_request_id = nil
 
--- TODO: be able to select text
 function M.setup()
   table.insert(commands, autocmd('CursorHoldI', {
     pattern = '*',
@@ -69,7 +68,6 @@ local function get_cursor_position()
   return line_num, col_num
 end
 
-
 --- Draw code completion suggestion at the current cursor position
 --- @return nil
 function M.draw()
@@ -103,7 +101,6 @@ function M.draw()
       suggestion.draw_suggestion(c, line_num, col_num)
     end)
   end
-
 
   -- Generate a unique ID for this request,
   -- this helps in identifying outdated responses

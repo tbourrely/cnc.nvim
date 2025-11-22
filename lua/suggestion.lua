@@ -1,3 +1,5 @@
+-- TODO: - support multi-line suggestions
+
 local M = {}
 local log = require('log')
 
