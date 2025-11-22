@@ -27,7 +27,6 @@ function M.draw_suggestion(suggestion, line_num, col_num)
     virt_text_pos = 'overlay',
   }
   api.nvim_buf_set_extmark(0, ns_id, line_num - 1, col_num, opts)
-  -- table.insert(mark_ids, mark_id)
 end
 
 --- Accept the current suggestion and insert it into the buffer
