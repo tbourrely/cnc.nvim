@@ -2,14 +2,14 @@ local M = {}
 
 local autocmd = vim.api.nvim_create_autocmd
 local delcmd = vim.api.nvim_del_autocmd
+local drawer = require('draw')
+local log = require('log')
+local uuid = require('uuid')
 
--- Store extmark ids to clear them later
-local mark_ids = {}
-local marks_ns = 'cnc.nvim'
 -- Store autocommand ids to clear them later
 local commands = {}
-
-local request_in_progress = false
+-- Store the last request id to handle outdated responses
+local last_request_id = nil
 
 -- TODO: be able to select text
 function M.setup()
@@ -48,15 +48,7 @@ function M.teardown()
 end
 
 function M.clear()
-  local api = vim.api
-  local bnr = vim.fn.bufnr('%')
-  local ns_id = api.nvim_create_namespace(marks_ns)
-  vim.schedule(function()
-    for _, mark_id in ipairs(mark_ids) do
-      api.nvim_buf_del_extmark(bnr, ns_id, mark_id)
-    end
-    mark_ids = {}
-  end)
+  drawer.clear()
 end
 
 local function get_cursor_position()
@@ -65,49 +57,45 @@ local function get_cursor_position()
   return line_num, col_num
 end
 
-local function draw_suggestion(suggestion, line_num, col_num)
-  local api = vim.api
-  local bnr = vim.fn.bufnr('%')
-  local ns_id = api.nvim_create_namespace(marks_ns)
-  local opts = {
-    id = 1,
-    virt_text = { { suggestion } },
-    virt_text_pos = 'overlay',
-  }
-  local mark_id = api.nvim_buf_set_extmark(bnr, ns_id, line_num - 1, col_num, opts)
-  table.insert(mark_ids, mark_id)
-end
 
 --- Draw code completion suggestion at the current cursor position
 --- @return nil
 function M.draw()
-  if request_in_progress then
-    return
-  end
-
   local uv = vim.uv
-
   local line_num, col_num = get_cursor_position()
   local buffer_content = require('buffer').to_string(line_num, col_num)
 
-  local function work_callback(content)
-    return require('openai').get(content)
+  local function work_callback(content, id)
+    require('log').debug('Requesting code completion from LLM with id ' .. id) -- must use require here as it runs in a separate thread
+    return require('openai').get(content), id
   end
-  local function after_work_callback(c)
+  local function after_work_callback(c, id)
+    log.debug('Received response from LLM for id ' .. id)
+
     if not c or c == '' then
+      log.debug('No suggestion received from LLM for request id ' .. id)
+      return
+    end
+
+    if last_request_id ~= id then
+      log.debug('Discarding suggestion for outdated request id ' .. id)
       return
     end
 
     vim.schedule(function()
-      draw_suggestion(c, line_num, col_num)
-      request_in_progress = false
+      log.debug('Drawing suggestion at line ' .. line_num .. ', column ' .. col_num .. ' for request id ' .. id)
+      drawer.draw_suggestion(c, line_num, col_num)
     end)
   end
 
-  request_in_progress = true
 
+  -- Generate a unique ID for this request,
+  -- this helps in identifying outdated responses
+  -- in case multiple requests are made in quick succession.
+  local id = uuid.string()
   local work = uv.new_work(work_callback, after_work_callback)
-  work:queue(buffer_content)
+  work:queue(buffer_content, id)
+  last_request_id = id
 end
 
 return M

@@ -56,3 +56,9 @@ luarocks commands above.
 [busted]: https://lunarmodules.github.io/busted/
 [nlua]: https://github.com/mfussenegger/nlua
 [use-this-template]: https://github.com/new?template_name=nvim-lua-plugin-template&template_owner=nvim-lua
+
+### See logs
+
+```sh
+tail -f /tmp/cnc.nvim.log
+```
