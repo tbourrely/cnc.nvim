@@ -15,6 +15,7 @@ function M.draw_suggestion(suggestion, line_num, col_num)
     id = 1,
     virt_text = { { suggestion } },
     virt_text_pos = 'overlay',
+    hl_mode = 'combine',
   }
   local status, err = pcall(function()
     api.nvim_buf_set_extmark(0, ns_id, line_num - 1, col_num, opts)
