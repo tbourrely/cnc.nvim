@@ -9,6 +9,9 @@ local marks_ns = 'cnc.nvim'
 -- Store autocommand ids to clear them later
 local commands = {}
 
+local request_in_progress = false
+
+-- TODO: be able to select text
 function M.setup()
   table.insert(commands, autocmd('CursorHoldI', {
     pattern = '*',
@@ -77,17 +80,18 @@ end
 
 --- Draw code completion suggestion at the current cursor position
 --- @return nil
----
---- TODO:
---- * improve cursor position handling
 function M.draw()
+  if request_in_progress then
+    return
+  end
+
   local uv = vim.uv
 
   local line_num, col_num = get_cursor_position()
   local buffer_content = require('buffer').to_string(line_num, col_num)
 
   local function work_callback(content)
-    return require('client').get(content)
+    return require('openai').get(content)
   end
   local function after_work_callback(c)
     if not c or c == '' then
@@ -96,10 +100,12 @@ function M.draw()
 
     vim.schedule(function()
       draw_suggestion(c, line_num, col_num)
+      request_in_progress = false
     end)
   end
 
-  -- TODO: handle multiple requests properly (cancellation, queueing, etc.)
+  request_in_progress = true
+
   local work = uv.new_work(work_callback, after_work_callback)
   work:queue(buffer_content)
 end
