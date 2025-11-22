@@ -23,21 +23,21 @@ function M.setup()
   table.insert(commands, autocmd('CursorMovedI', {
     pattern = '*',
     callback = function()
-      M.clear()
+      M.reject_suggestion()
     end,
   }))
 
   table.insert(commands, autocmd('TextChangedI', {
     pattern = '*',
     callback = function()
-      M.clear()
+      M.reject_suggestion()
     end,
   }))
 
   table.insert(commands, autocmd('ModeChanged', {
     pattern = '*',
     callback = function()
-      M.clear()
+      M.reject_suggestion()
     end,
   }))
 
@@ -60,12 +60,7 @@ function M.teardown()
     delcmd(cmd_id)
   end
   commands = {}
-  M.clear()
-end
-
-function M.clear()
-  log.debug("Clearing suggestions")
-  suggestion.clear()
+  M.reject_suggestion()
 end
 
 local function get_cursor_position()
@@ -115,10 +110,14 @@ function M.draw()
   last_request_id = id
 end
 
+--- Accept the current suggestion and insert it into the buffer
+--- @return nil
 function M.accept_suggestion()
   suggestion.accept_suggestion()
 end
 
+--- Reject the current suggestion and clear it from the buffer
+--- @return nil
 function M.reject_suggestion()
   suggestion.reject_suggestion()
 end
